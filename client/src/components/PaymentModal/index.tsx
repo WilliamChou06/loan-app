@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import axios from 'axios';
 import Modal from 'antd/lib/modal';
 import 'antd/lib/modal/style/css';
@@ -11,55 +11,67 @@ import 'antd/lib/input/style/css';
 interface Props {
   visible: boolean;
   email: string;
-  balance: number;
   onCancel(): any;
   getFieldDecorator: any;
+  form: any;
+  getBalance(email: string): any;
 }
 
 const PaymentModal: React.FC<Props> = ({
   email,
-  balance,
   visible,
   onCancel,
-  getFieldDecorator,
+  form,
+  getBalance,
 }) => {
-  const modalRef = useRef(null);
+  const [balance, setBalance] = useState();
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      const res = await getBalance(email);
+      setBalance(res.data.amount);
+    };
+    fetchBalance();
+  }, [balance]);
 
   const handlePayment = async e => {
-    // @ts-ignore
-    const form = modalRef.current.props.form;
     e.preventDefault();
-    console.log(modalRef);
-    // form.validateFields(async (err, { amount }) => {
-    //   const payDebtRes = await payDebt(amount);
-    //   console.log(payDebtRes);
-    // });
+    form.validateFields(async (err, { amount }) => {
+      try {
+        const payDebtRes = await payDebt(amount);
+        form.resetFields();
+        setBalance(balance - amount);
+      } catch (err) {
+        console.log(err.response);
+      }
+    });
   };
 
   const payDebt = async amount => {
     try {
-      return await axios.post('/payments', {
+      return await axios.post('http://localhost:4000/payments', {
         email,
         amount,
       });
     } catch (err) {
-      console.log(err);
+      console.log(err.response);
     }
   };
+
+  const { getFieldDecorator } = form;
 
   return (
     <Modal
       okText="Pay amount"
-      ref={modalRef}
       visible={visible}
       onCancel={onCancel}
       onOk={handlePayment}
     >
-      <Form onSubmit={handlePayment}>
-        <p>Debt: ${balance}</p>
-        {/* <Form.Item>
+      <Form>
+        <h1>Debt: ${balance}</h1>
+        <Form.Item>
           {getFieldDecorator('amount')(<Input placeholder="Amount" />)}
-        </Form.Item> */}
+        </Form.Item>
       </Form>
     </Modal>
   );
@@ -69,4 +81,4 @@ const WrappedPaymentModal = Form.create({ name: 'payment_modal' })(
   PaymentModal
 );
 
-export default WrappedPaymentModal;
+export default memo(WrappedPaymentModal);

@@ -21,21 +21,16 @@ interface Props {
 
 const App: React.FC<Props> = props => {
   const [visible, setVisible] = useState(false);
-  const [balance, setBalance] = useState(0);
   const [email, setEmail] = useState();
 
   const { getFieldDecorator } = props.form;
   const { Title } = Typography;
 
-  useEffect(() => {}, [visible]);
-
   const handleSubmit = e => {
     e.preventDefault();
     props.form.validateFields(async (err, { email }) => {
       const getEmailRes = await getEmail(email);
-      console.log(getEmailRes);
       if (getEmailRes.data.amount) {
-        setBalance(getEmailRes.data.amount);
         setVisible(true);
         setEmail(email);
       }
@@ -72,15 +67,15 @@ const App: React.FC<Props> = props => {
         </Form>
       </InputContainer>
       <Suspense fallback={<div>...</div>}>
-        {
+        {visible ? (
           // @ts-ignore
           <PaymentModal
+            getBalance={getEmail}
             onCancel={onCancel}
             email={email}
             visible={visible}
-            balance={balance}
           />
-        }
+        ) : null}
       </Suspense>
     </AppWrapper>
   );
