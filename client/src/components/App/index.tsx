@@ -22,9 +22,7 @@ interface Props {
 const App: React.FC<Props> = props => {
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState();
-
-  const { getFieldDecorator } = props.form;
-  const { Title } = Typography;
+  const [error, setError] = useState();
 
   const handleSubmit = e => {
     e.preventDefault();
@@ -33,9 +31,15 @@ const App: React.FC<Props> = props => {
       if (getEmailRes.data.amount) {
         setVisible(true);
         setEmail(email);
+        setError('');
+      } else {
+        setError('User not found or does not have any debts');
       }
     });
   };
+
+  const { getFieldDecorator } = props.form;
+  const { Title, Text } = Typography;
 
   const getEmail = async email => {
     try {
@@ -56,6 +60,7 @@ const App: React.FC<Props> = props => {
       <InputContainer>
         <Form onSubmit={handleSubmit}>
           <Title>Enter your Email</Title>
+          <Text type="danger">{error}</Text>
           <Form.Item>
             {getFieldDecorator('email')(<Input placeholder="Email" />)}
           </Form.Item>
@@ -66,7 +71,7 @@ const App: React.FC<Props> = props => {
           </Form.Item>
         </Form>
       </InputContainer>
-      <Suspense fallback={<div>...</div>}>
+      <Suspense fallback={<div>Loading...</div>}>
         {visible ? (
           // @ts-ignore
           <PaymentModal
