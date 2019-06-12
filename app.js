@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const database = require('./utils/database');
 const bodyParser = require('body-parser');
 
@@ -10,10 +11,13 @@ const PORT = process.env.PORT || 4000;
 // Bodyparser middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
 
 // Routes
 app.post('/loan', async (req, res) => {
   const loanLimit = 1000;
+  const firstloanLimit = 50;
+
   try {
     const findEmailRes = await db.findByEmail(req.body.email);
     const currentLoanAmount = await db.getCurrentLoanAmount();
@@ -30,9 +34,11 @@ app.post('/loan', async (req, res) => {
         );
     }
     // Else create new user
-    return res
-      .status(201)
-      .send(await db.setByEmail(req.body.email, req.body.amount));
+    req.body.amount <= firstloanLimit
+      ? res
+          .status(201)
+          .send(await db.setByEmail(req.body.email, req.body.amount))
+      : res.status(403).send({ error: 100 });
   } catch (err) {
     console.log(err);
   }
@@ -41,10 +47,12 @@ app.post('/loan', async (req, res) => {
 app.post('/payments', async (req, res) => {
   try {
     const findEmailRes = await db.findByEmail(req.body.email);
+    // If email exists check if payment amount is larger than debt
     if (findEmailRes) {
       return findEmailRes < req.body.amount
         ? res.status(403).send({ error: 100 })
-        : res
+        : // Subtract payment from debt
+          res
             .status(201)
             .send(
               await db.setByEmail(
@@ -53,7 +61,7 @@ app.post('/payments', async (req, res) => {
               )
             );
     }
-
+    // Return error if email is not found in database
     return res.status(403).send({ error: 101 });
   } catch (err) {
     console.log(err);
