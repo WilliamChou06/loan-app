@@ -1,10 +1,9 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useReducer } from 'react';
 import axios from 'axios';
 import { AppWrapper, InputContainer } from './style';
 
 // antd imports
 import Form from 'antd/lib/form';
-
 import Button from 'antd/lib/button';
 import Input from 'antd/lib/input';
 import Typography from 'antd/lib/typography';
@@ -12,28 +11,77 @@ import 'antd/lib/form/style/css';
 import 'antd/lib/button/style/css';
 import 'antd/lib/input/style/css';
 import 'antd/lib/typography/style/css';
+import { string } from 'prop-types';
 
 const PaymentModal = lazy(() => import('../PaymentModal'));
+
+enum ActionType {
+  SHOW_MODAL = 'SHOW_MODAL',
+  SET_ERROR = 'SET_ERROR',
+  HIDE_MODAL = 'HIDE_MODAL',
+}
 
 interface Props {
   form: any;
 }
 
+interface IState {
+  visible: boolean;
+  email: string;
+  error: string;
+}
+
+interface IAction {
+  type: ActionType;
+  email?: string;
+  error?: string;
+}
+
+const InitialState: IState = {
+  visible: false,
+  email: null,
+  error: null,
+};
+
+const reducer: React.Reducer<IState, IAction> = (state, action) => {
+  switch (action.type) {
+    case ActionType.SHOW_MODAL:
+      return {
+        ...state,
+        visible: true,
+        email: action.email,
+        error: '',
+      };
+    case ActionType.HIDE_MODAL:
+      return {
+        ...state,
+        visible: false,
+      };
+    case ActionType.SET_ERROR: {
+      return {
+        ...state,
+        error: action.error,
+      };
+    }
+  }
+};
+
 const App: React.FC<Props> = props => {
-  const [visible, setVisible] = useState(false);
-  const [email, setEmail] = useState();
-  const [error, setError] = useState();
+  const [{ visible, email, error }, dispatch] = useReducer<
+    React.Reducer<IState, IAction>
+  >(reducer, InitialState);
 
   const handleSubmit = e => {
     e.preventDefault();
     props.form.validateFields(async (err, { email }) => {
       const getEmailRes = await getEmail(email);
       if (getEmailRes.data.amount) {
-        setVisible(true);
-        setEmail(email);
-        setError('');
+        dispatch({ type: ActionType.SHOW_MODAL, email });
       } else {
-        setError('User not found or does not have any debts');
+        dispatch({
+          type: ActionType.SET_ERROR,
+          error: 'User not found or does not have any debts',
+        });
       }
     });
   };
@@ -52,7 +100,7 @@ const App: React.FC<Props> = props => {
   };
 
   const onCancel = () => {
-    setVisible(false);
+    dispatch({ type: ActionType.HIDE_MODAL });
   };
 
   return (
