@@ -11,8 +11,6 @@ const PORT = process.env.PORT || 4000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const informationRoutes = require('./routes/information');
-
 // Routes
 app.post('/loan', async (req, res) => {
   const loanLimit = 1000;
@@ -35,6 +33,28 @@ app.post('/loan', async (req, res) => {
     return res
       .status(201)
       .send(await db.setByEmail(req.body.email, req.body.amount));
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+app.post('/payments', async (req, res) => {
+  try {
+    const findEmailRes = await db.findByEmail(req.body.email);
+    if (findEmailRes) {
+      return findEmailRes < req.body.amount
+        ? res.status(403).send({ error: 100 })
+        : res
+            .status(201)
+            .send(
+              await db.setByEmail(
+                req.body.email,
+                findEmailRes - req.body.amount
+              )
+            );
+    }
+
+    return res.status(403).send({ error: 101 });
   } catch (err) {
     console.log(err);
   }
