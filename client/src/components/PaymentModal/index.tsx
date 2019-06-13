@@ -5,6 +5,8 @@ import Modal from 'antd/lib/modal';
 import Form from 'antd/lib/form';
 import { FormComponentProps } from 'antd/lib/form';
 import Input from 'antd/lib/input';
+import Typography from 'antd/lib/typography';
+import 'antd/lib/typography/style/css';
 
 import 'antd/lib/form/style/css';
 import 'antd/lib/modal/style/css';
@@ -25,6 +27,7 @@ const PaymentModal: React.FC<Props> = ({
   getBalance,
 }) => {
   const [balance, setBalance] = useState();
+  const [error, setError] = useState();
 
   useEffect(() => {
     // Fetch balance on every payment
@@ -40,6 +43,7 @@ const PaymentModal: React.FC<Props> = ({
   const handlePayment = async (e): Promise<any> => {
     e.preventDefault();
     form.validateFields(async (err, { amount }: { amount: number }) => {
+      setError('');
       try {
         // Process payment and set balance
         const payDebtRes = await payDebt(amount);
@@ -47,6 +51,7 @@ const PaymentModal: React.FC<Props> = ({
         setBalance(payDebtRes.data[email]);
       } catch (err) {
         console.log(err.response);
+        setError('Your payment is larger than your debt!');
       }
     });
   };
@@ -60,6 +65,7 @@ const PaymentModal: React.FC<Props> = ({
   };
 
   const { getFieldDecorator } = form;
+  const { Title, Text } = Typography;
 
   return (
     <Modal
@@ -70,6 +76,8 @@ const PaymentModal: React.FC<Props> = ({
     >
       <Form>
         <h1>Debt: ${balance}</h1>
+        {error && <Text type="danger">{error}</Text>}
+        <br />
         <Form.Item>
           {getFieldDecorator('amount')(<Input placeholder="Amount" />)}
         </Form.Item>
